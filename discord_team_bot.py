@@ -219,8 +219,8 @@ async def on_message(message: discord.Message):
     # ② 脱退申請チャンネル：「脱退」と書くだけで自分のロール削除
     # --------------------------------------------------------
     if cfg["leave_channel"] and message.channel.id == int(cfg["leave_channel"]):
-        if content != "脱退":
-            return  # 「脱退」以外は無視
+        if "脱退" not in content:
+            return  # 「脱退」を含まない場合は無視
 
         member_team_roles = get_member_team_roles(message.author, cfg)
         if not member_team_roles:
