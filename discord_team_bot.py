@@ -222,21 +222,43 @@ async def on_message(message: discord.Message):
         if "脱退" not in content:
             return  # 「脱退」を含まない場合は無視
 
-        # リーダーロールを持っている人は脱退できない
+        # リーダーがメンションしている場合 → メンションされた人のロールを外す
+        if get_managed_team_roles(message.author, cfg) and message.mentions:
+            team_roles = get_managed_team_roles(message.author, cfg)
+            for target in message.mentions:
+                if target.bot:
+                    continue
+                removed = []
+                for role in team_roles:
+                    if role in target.roles:
+                        ok = await safe_remove_role(message.channel, target, role, message.author)
+                        if ok:
+                            removed.append(role.name)
+                if removed:
+                    await message.channel.send(
+                        f"✅ {target.mention} を **{', '.join(removed)}** から脱退させました。"
+                    )
+                else:
+                    await message.channel.send(
+                        f"ℹ️ {target.mention} は該当するチームロールを持っていません。"
+                    )
+            return
+
+        # リーダーがメンションなしで脱退 → 警告
         if get_managed_team_roles(message.author, cfg):
             await message.channel.send(
                 f"⚠️ {message.author.mention} はチームリーダーのため、この方法では脱退できません。\n"
-                f"リーダーの脱退は管理者に依頼してください。"
+                f"メンバーを脱退させる場合は `@ユーザー 脱退` と入力してください。"
             )
             return
 
+        # 一般メンバーの脱退
         member_team_roles = get_member_team_roles(message.author, cfg)
         if not member_team_roles:
             await message.channel.send(
                 f"ℹ️ {message.author.mention} は現在どのチームにも加入していません。"
             )
             return
-
 
         removed = []
         for role in member_team_roles:
